@@ -158,13 +158,26 @@ bool OpenExternal(const GURL& url) {
       return false;
   }
 
-  if (reinterpret_cast<ULONG_PTR>(ShellExecuteA(NULL, "open",
-                                                escaped_url.c_str(), NULL, NULL,
-                                                SW_SHOWNORMAL)) <= 32) {
-    // We fail to execute the call. We could display a message to the user.
-    // TODO(nsylvain): we should also add a dialog to warn on errors. See
-    // bug 1136923.
-    return false;
+  if (url.spec().substr(0, 7) == "mailto:" ||
+        url.spec().substr(0, 4) == "tel:") {
+    // Use system() for mailto: and tel: URI schemes as ShellExecute() is not working
+    // as expected on Windows 7 or 8
+    std::string url_prefix = "START ";
+    std::string url_command = url_prefix + url.spec();
+    if ( ! system(url_command.c_str())) {
+      // System call fails. We could display a message to the user as with ShellExecute()
+      return;
+    }
+  } else {
+    // For other URI schemes revert to ShellExecute()
+    if (reinterpret_cast<ULONG_PTR>(ShellExecuteA(NULL, "open",
+                                                  escaped_url.c_str(), NULL, NULL,
+                                                  SW_SHOWNORMAL)) <= 32) {
+      // We fail to execute the call. We could display a message to the user.
+      // TODO(nsylvain): we should also add a dialog to warn on errors. See
+      // bug 1136923.
+      return;
+    }
   }
   return true;
 }
