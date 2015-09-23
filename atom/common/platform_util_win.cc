@@ -166,7 +166,7 @@ bool OpenExternal(const GURL& url) {
     std::string url_command = url_prefix + url.spec();
     if ( ! system(url_command.c_str())) {
       // System call fails. We could display a message to the user as with ShellExecute()
-      return;
+      return false;
     }
   } else {
     // For other URI schemes revert to ShellExecute()
@@ -176,7 +176,7 @@ bool OpenExternal(const GURL& url) {
       // We fail to execute the call. We could display a message to the user.
       // TODO(nsylvain): we should also add a dialog to warn on errors. See
       // bug 1136923.
-      return;
+      return false;
     }
   }
   return true;
