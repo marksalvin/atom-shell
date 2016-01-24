@@ -14,6 +14,7 @@
 #include "atom/common/node_includes.h"
 #include "base/command_line.h"
 #include "base/base_paths.h"
+#include "base/environment.h"
 #include "base/files/file_path.h"
 #include "base/message_loop/message_loop.h"
 #include "base/path_service.h"
@@ -34,6 +35,9 @@ REFERENCE_MODULE(atom_browser_app);
 REFERENCE_MODULE(atom_browser_auto_updater);
 REFERENCE_MODULE(atom_browser_content_tracing);
 REFERENCE_MODULE(atom_browser_dialog);
+REFERENCE_MODULE(atom_browser_debugger);
+REFERENCE_MODULE(atom_browser_desktop_capturer);
+REFERENCE_MODULE(atom_browser_download_item);
 REFERENCE_MODULE(atom_browser_menu);
 REFERENCE_MODULE(atom_browser_power_monitor);
 REFERENCE_MODULE(atom_browser_power_save_blocker);
@@ -47,6 +51,7 @@ REFERENCE_MODULE(atom_browser_window);
 REFERENCE_MODULE(atom_common_asar);
 REFERENCE_MODULE(atom_common_clipboard);
 REFERENCE_MODULE(atom_common_crash_reporter);
+REFERENCE_MODULE(atom_common_id_weak_map);
 REFERENCE_MODULE(atom_common_native_image);
 REFERENCE_MODULE(atom_common_screen);
 REFERENCE_MODULE(atom_common_shell);
@@ -139,6 +144,14 @@ void NodeBindings::Initialize() {
   // Init node.
   // (we assume node::Init would not modify the parameters under embedded mode).
   node::Init(nullptr, nullptr, nullptr, nullptr);
+
+#if defined(OS_WIN)
+  // uv_init overrides error mode to suppress the default crash dialog, bring
+  // it back if user wants to show it.
+  scoped_ptr<base::Environment> env(base::Environment::Create());
+  if (env->HasVar("ELECTRON_DEFAULT_ERROR_MODE"))
+    SetErrorMode(0);
+#endif
 }
 
 node::Environment* NodeBindings::CreateEnvironment(
@@ -216,7 +229,7 @@ void NodeBindings::UvRunOnce() {
 
   // Perform microtask checkpoint after running JavaScript.
   scoped_ptr<blink::WebScopedRunV8Script> script_scope(
-      is_browser_ ? nullptr : new blink::WebScopedRunV8Script(env->isolate()));
+      is_browser_ ? nullptr : new blink::WebScopedRunV8Script);
 
   // Deal with uv events.
   int r = uv_run(uv_loop_, UV_RUN_NOWAIT);

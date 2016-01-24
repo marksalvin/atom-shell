@@ -35,7 +35,7 @@ exposing your app's source code to users.
 
 To use an `asar` archive to replace the `app` folder, you need to rename the
 archive to `app.asar`, and put it under Electron's resources directory like
-below, and Electron will then try read the archive and start from it.
+below, and Electron will then try to read the archive and start from it.
 
 On OS X:
 
@@ -118,3 +118,11 @@ a Grunt task has been created that will handle this automatically:
 This task will automatically handle editing the `.gyp` file, building from
 source, then rebuilding your app's native Node modules to match the new
 executable name.
+
+## Packaging Tools
+
+Apart from packaging your app manually, you can also choose to use third party
+packaging tools to do the work for you:
+
+* [electron-packager](https://github.com/maxogden/electron-packager)
+* [electron-builder](https://github.com/loopline-systems/electron-builder)

@@ -8,7 +8,7 @@ An example of showing a dialog to select multiple files and directories:
 
 ```javascript
 var win = ...;  // BrowserWindow in which to show the dialog
-var dialog = require('dialog');
+const dialog = require('electron').dialog;
 console.log(dialog.showOpenDialog({ properties: [ 'openFile', 'openDirectory', 'multiSelections' ]}));
 ```
 
@@ -20,10 +20,10 @@ parameter.
 
 The `dialog` module has the following methods:
 
-### `dialog.showOpenDialog([browserWindow][, options][, callback])`
+### `dialog.showOpenDialog([browserWindow, ]options[, callback])`
 
 * `browserWindow` BrowserWindow (optional)
-* `options` Object (optional)
+* `options` Object
   * `title` String
   * `defaultPath` String
   * `filters` Array
@@ -61,10 +61,10 @@ and a directory selector, so if you set `properties` to
 `['openFile', 'openDirectory']` on these platforms, a directory selector will be
 shown.
 
-### `dialog.showSaveDialog([browserWindow][, options][, callback])`
+### `dialog.showSaveDialog([browserWindow, ]options[, callback])`
 
 * `browserWindow` BrowserWindow (optional)
-* `options` Object (optional)
+* `options` Object
   * `title` String
   * `defaultPath` String
   * `filters` Array
@@ -79,14 +79,16 @@ The `filters` specifies an array of file types that can be displayed, see
 If a `callback` is passed, the API call will be asynchronous and the result
 will be passed via `callback(filename)`
 
-### `dialog.showMessageBox([browserWindow][, options][, callback])`
+### `dialog.showMessageBox([browserWindow, ]options[, callback])`
 
 * `browserWindow` BrowserWindow (optional)
-* `options` Object (optional)
+* `options` Object
   * `type` String - Can be `"none"`, `"info"`, `"error"`, `"question"` or
   `"warning"`. On Windows, "question" displays the same icon as "info", unless
   you set an icon using the "icon" option.
   * `buttons` Array - Array of texts for buttons.
+  * `defaultId` Integer - Index of the button in the buttons array which will
+    be selected by default when the message box opens.
   * `title` String - Title of the message box, some platforms will not show it.
   * `message` String - Content of the message box.
   * `detail` String - Extra information of the message.
@@ -114,4 +116,6 @@ will be passed via `callback(response)`.
 Displays a modal dialog that shows an error message.
 
 This API can be called safely before the `ready` event the `app` module emits,
-it is usually used to report errors in early stage of startup.
+it is usually used to report errors in early stage of startup.  If called
+before the app `ready`event on Linux, the message will be emitted to stderr,
+and no GUI dialog will appear.

@@ -12,8 +12,8 @@
 #include "atom/browser/atom_browser_context.h"
 #include "atom/browser/atom_browser_main_parts.h"
 #include "atom/browser/atom_quota_permission_context.h"
+#include "atom/browser/atom_resource_dispatcher_host_delegate.h"
 #include "atom/browser/atom_speech_recognition_manager_delegate.h"
-#include "atom/browser/browser.h"
 #include "atom/browser/native_window.h"
 #include "atom/browser/web_contents_preferences.h"
 #include "atom/browser/window_list.h"
@@ -25,11 +25,13 @@
 #include "base/strings/string_number_conversions.h"
 #include "chrome/browser/printing/printing_message_filter.h"
 #include "chrome/browser/renderer_host/pepper/chrome_browser_pepper_host_factory.h"
+#include "chrome/browser/renderer_host/pepper/widevine_cdm_message_filter.h"
 #include "chrome/browser/speech/tts_message_filter.h"
 #include "content/public/browser/browser_ppapi_host.h"
 #include "content/public/browser/client_certificate_delegate.h"
 #include "content/public/browser/render_process_host.h"
 #include "content/public/browser/render_view_host.h"
+#include "content/public/browser/resource_dispatcher_host.h"
 #include "content/public/browser/site_instance.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/common/web_preferences.h"
@@ -53,6 +55,8 @@ bool g_suppress_renderer_process_restart = false;
 
 // Custom schemes to be registered to standard.
 std::string g_custom_schemes = "";
+// Custom schemes to be registered to handle service worker.
+std::string g_custom_service_worker_schemes = "";
 
 scoped_refptr<net::X509Certificate> ImportCertFromFile(
     const base::FilePath& path) {
@@ -83,10 +87,15 @@ void AtomBrowserClient::SuppressRendererProcessRestartForOnce() {
 
 void AtomBrowserClient::SetCustomSchemes(
     const std::vector<std::string>& schemes) {
-  g_custom_schemes = JoinString(schemes, ',');
+  g_custom_schemes = base::JoinString(schemes, ",");
 }
 
-AtomBrowserClient::AtomBrowserClient() {
+void AtomBrowserClient::SetCustomServiceWorkerSchemes(
+    const std::vector<std::string>& schemes) {
+  g_custom_service_worker_schemes = base::JoinString(schemes, ",");
+}
+
+AtomBrowserClient::AtomBrowserClient() : delegate_(nullptr) {
 }
 
 AtomBrowserClient::~AtomBrowserClient() {
@@ -97,6 +106,8 @@ void AtomBrowserClient::RenderProcessWillLaunch(
   int process_id = host->GetID();
   host->AddFilter(new printing::PrintingMessageFilter(process_id));
   host->AddFilter(new TtsMessageFilter(process_id, host->GetBrowserContext()));
+  host->AddFilter(
+      new WidevineCdmMessageFilter(process_id, host->GetBrowserContext()));
 }
 
 content::SpeechRecognitionManagerDelegate*
@@ -115,7 +126,6 @@ void AtomBrowserClient::OverrideWebkitPrefs(
   prefs->javascript_can_open_windows_automatically = true;
   prefs->plugins_enabled = true;
   prefs->dom_paste_enabled = true;
-  prefs->java_enabled = false;
   prefs->allow_scripts_to_close_windows = true;
   prefs->javascript_can_access_clipboard = true;
   prefs->local_storage_enabled = true;
@@ -172,6 +182,11 @@ void AtomBrowserClient::AppendExtraCommandLineSwitches(
     command_line->AppendSwitchASCII(switches::kRegisterStandardSchemes,
                                     g_custom_schemes);
 
+  // The registered service worker schemes.
+  if (!g_custom_service_worker_schemes.empty())
+    command_line->AppendSwitchASCII(switches::kRegisterServiceWorkerSchemes,
+                                    g_custom_service_worker_schemes);
+
 #if defined(OS_WIN)
   // Append --app-user-model-id.
   PWSTR current_app_id;
@@ -185,9 +200,16 @@ void AtomBrowserClient::AppendExtraCommandLineSwitches(
   if (ContainsKey(pending_processes_, process_id))
     process_id = pending_processes_[process_id];
 
+
+  // Certain render process will be created with no associated render view,
+  // for example: ServiceWorker.
+  auto rvh = content::RenderViewHost::FromID(process_id, kDefaultRoutingID);
+  if (!rvh)
+    return;
+
   // Get the WebContents of the render process.
-  content::WebContents* web_contents = content::WebContents::FromRenderViewHost(
-      content::RenderViewHost::FromID(process_id, kDefaultRoutingID));
+  content::WebContents* web_contents =
+      content::WebContents::FromRenderViewHost(rvh);
   if (!web_contents)
     return;
 
@@ -206,6 +228,26 @@ content::QuotaPermissionContext*
   return new AtomQuotaPermissionContext;
 }
 
+void AtomBrowserClient::AllowCertificateError(
+    int render_process_id,
+    int render_frame_id,
+    int cert_error,
+    const net::SSLInfo& ssl_info,
+    const GURL& request_url,
+    content::ResourceType resource_type,
+    bool overridable,
+    bool strict_enforcement,
+    bool expired_previous_decision,
+    const base::Callback<void(bool)>& callback,
+    content::CertificateRequestResultType* request) {
+  if (delegate_) {
+    delegate_->AllowCertificateError(
+        render_process_id, render_frame_id, cert_error, ssl_info, request_url,
+        resource_type, overridable, strict_enforcement,
+        expired_previous_decision, callback, request);
+  }
+}
+
 void AtomBrowserClient::SelectClientCertificate(
     content::WebContents* web_contents,
     net::SSLCertRequestInfo* cert_request_info,
@@ -220,10 +262,17 @@ void AtomBrowserClient::SelectClientCertificate(
     return;
   }
 
-  if (!cert_request_info->client_certs.empty())
-    Browser::Get()->ClientCertificateSelector(web_contents,
-                                              cert_request_info,
-                                              delegate.Pass());
+  if (!cert_request_info->client_certs.empty() && delegate_) {
+    delegate_->SelectClientCertificate(
+        web_contents, cert_request_info, delegate.Pass());
+  }
+}
+
+void AtomBrowserClient::ResourceDispatcherHostCreated() {
+  resource_dispatcher_host_delegate_.reset(
+      new AtomResourceDispatcherHostDelegate);
+  content::ResourceDispatcherHost::Get()->SetDelegate(
+      resource_dispatcher_host_delegate_.get());
 }
 
 brightray::BrowserMainParts* AtomBrowserClient::OverrideCreateBrowserMainParts(

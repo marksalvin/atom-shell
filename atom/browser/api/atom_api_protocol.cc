@@ -12,26 +12,11 @@
 #include "atom/browser/net/url_request_fetch_job.h"
 #include "atom/browser/net/url_request_string_job.h"
 #include "atom/common/native_mate_converters/callback.h"
+#include "atom/common/native_mate_converters/net_converter.h"
 #include "atom/common/node_includes.h"
 #include "native_mate/dictionary.h"
 
 using content::BrowserThread;
-
-namespace mate {
-
-template<>
-struct Converter<const net::URLRequest*> {
-  static v8::Local<v8::Value> ToV8(v8::Isolate* isolate,
-                                   const net::URLRequest* val) {
-    return mate::ObjectTemplateBuilder(isolate)
-        .SetValue("method", val->method())
-        .SetValue("url", val->url().spec())
-        .SetValue("referrer", val->referrer())
-        .Build()->NewInstance();
-  }
-};
-
-}  // namespace mate
 
 namespace atom {
 
@@ -47,12 +32,14 @@ mate::ObjectTemplateBuilder Protocol::GetObjectTemplateBuilder(
     v8::Isolate* isolate) {
   return mate::ObjectTemplateBuilder(isolate)
       .SetMethod("registerStandardSchemes", &Protocol::RegisterStandardSchemes)
+      .SetMethod("registerServiceWorkerSchemes",
+                 &Protocol::RegisterServiceWorkerSchemes)
       .SetMethod("registerStringProtocol",
                  &Protocol::RegisterProtocol<URLRequestStringJob>)
       .SetMethod("registerBufferProtocol",
                  &Protocol::RegisterProtocol<URLRequestBufferJob>)
       .SetMethod("registerFileProtocol",
-                 &Protocol::RegisterProtocol<UrlRequestAsyncAsarJob>)
+                 &Protocol::RegisterProtocol<URLRequestAsyncAsarJob>)
       .SetMethod("registerHttpProtocol",
                  &Protocol::RegisterProtocol<URLRequestFetchJob>)
       .SetMethod("unregisterProtocol", &Protocol::UnregisterProtocol)
@@ -62,7 +49,7 @@ mate::ObjectTemplateBuilder Protocol::GetObjectTemplateBuilder(
       .SetMethod("interceptBufferProtocol",
                  &Protocol::InterceptProtocol<URLRequestBufferJob>)
       .SetMethod("interceptFileProtocol",
-                 &Protocol::InterceptProtocol<UrlRequestAsyncAsarJob>)
+                 &Protocol::InterceptProtocol<URLRequestAsyncAsarJob>)
       .SetMethod("interceptHttpProtocol",
                  &Protocol::InterceptProtocol<URLRequestFetchJob>)
       .SetMethod("uninterceptProtocol", &Protocol::UninterceptProtocol);
@@ -71,6 +58,11 @@ mate::ObjectTemplateBuilder Protocol::GetObjectTemplateBuilder(
 void Protocol::RegisterStandardSchemes(
     const std::vector<std::string>& schemes) {
   atom::AtomBrowserClient::SetCustomSchemes(schemes);
+}
+
+void Protocol::RegisterServiceWorkerSchemes(
+    const std::vector<std::string>& schemes) {
+  atom::AtomBrowserClient::SetCustomServiceWorkerSchemes(schemes);
 }
 
 void Protocol::UnregisterProtocol(

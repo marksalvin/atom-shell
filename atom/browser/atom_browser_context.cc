@@ -7,6 +7,9 @@
 #include "atom/browser/atom_browser_main_parts.h"
 #include "atom/browser/atom_download_manager_delegate.h"
 #include "atom/browser/browser.h"
+#include "atom/browser/net/atom_cert_verifier.h"
+#include "atom/browser/net/atom_network_delegate.h"
+#include "atom/browser/net/atom_ssl_config_service.h"
 #include "atom/browser/net/atom_url_request_job_factory.h"
 #include "atom/browser/net/asar/asar_protocol_handler.h"
 #include "atom/browser/net/http_protocol_handler.h"
@@ -16,11 +19,13 @@
 #include "atom/common/options_switches.h"
 #include "base/command_line.h"
 #include "base/files/file_path.h"
+#include "base/path_service.h"
 #include "base/prefs/pref_registry_simple.h"
 #include "base/strings/string_util.h"
 #include "base/strings/stringprintf.h"
 #include "base/threading/sequenced_worker_pool.h"
 #include "base/threading/worker_pool.h"
+#include "chrome/common/chrome_paths.h"
 #include "chrome/common/pref_names.h"
 #include "content/public/browser/browser_thread.h"
 #include "content/public/common/url_constants.h"
@@ -59,10 +64,17 @@ std::string RemoveWhitespace(const std::string& str) {
 AtomBrowserContext::AtomBrowserContext(const std::string& partition,
                                        bool in_memory)
     : brightray::BrowserContext(partition, in_memory),
-      job_factory_(new AtomURLRequestJobFactory) {
+      cert_verifier_(nullptr),
+      job_factory_(new AtomURLRequestJobFactory),
+      network_delegate_(new AtomNetworkDelegate),
+      allow_ntlm_everywhere_(false) {
 }
 
 AtomBrowserContext::~AtomBrowserContext() {
+}
+
+net::NetworkDelegate* AtomBrowserContext::CreateNetworkDelegate() {
+  return network_delegate_;
 }
 
 std::string AtomBrowserContext::GetUserAgent() {
@@ -82,7 +94,8 @@ std::string AtomBrowserContext::GetUserAgent() {
   return content::BuildUserAgentFromProduct(user_agent);
 }
 
-net::URLRequestJobFactory* AtomBrowserContext::CreateURLRequestJobFactory(
+scoped_ptr<net::URLRequestJobFactory>
+AtomBrowserContext::CreateURLRequestJobFactory(
     content::ProtocolHandlerMap* handlers,
     content::URLRequestInterceptorScopedVector* interceptors) {
   scoped_ptr<AtomURLRequestJobFactory> job_factory(job_factory_);
@@ -127,7 +140,7 @@ net::URLRequestJobFactory* AtomBrowserContext::CreateURLRequestJobFactory(
         top_job_factory.Pass(), make_scoped_ptr(*it)));
   interceptors->weak_clear();
 
-  return top_job_factory.release();
+  return top_job_factory.Pass();
 }
 
 net::HttpCache::BackendFactory*
@@ -156,11 +169,33 @@ content::BrowserPluginGuestManager* AtomBrowserContext::GetGuestManager() {
   return guest_manager_.get();
 }
 
+scoped_ptr<net::CertVerifier> AtomBrowserContext::CreateCertVerifier() {
+  DCHECK(!cert_verifier_);
+  cert_verifier_ = new AtomCertVerifier;
+  return make_scoped_ptr(cert_verifier_);
+}
+
+net::SSLConfigService* AtomBrowserContext::CreateSSLConfigService() {
+  return new AtomSSLConfigService;
+}
+
 void AtomBrowserContext::RegisterPrefs(PrefRegistrySimple* pref_registry) {
   pref_registry->RegisterFilePathPref(prefs::kSelectFileLastDirectory,
                                       base::FilePath());
+  base::FilePath download_dir;
+  PathService::Get(chrome::DIR_DEFAULT_DOWNLOADS, &download_dir);
   pref_registry->RegisterFilePathPref(prefs::kDownloadDefaultDirectory,
-                                      base::FilePath());
+                                      download_dir);
+}
+
+bool AtomBrowserContext::AllowNTLMCredentialsForDomain(const GURL& origin) {
+  if (allow_ntlm_everywhere_)
+    return true;
+  return Delegate::AllowNTLMCredentialsForDomain(origin);
+}
+
+void AtomBrowserContext::AllowNTLMCredentialsForAllDomains(bool should_allow) {
+  allow_ntlm_everywhere_ = should_allow;
 }
 
 }  // namespace atom

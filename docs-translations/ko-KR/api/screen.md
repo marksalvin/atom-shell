@@ -3,22 +3,25 @@
 `screen` 모듈은 화면 크기, 디스플레이, 커서 위치 등등의 다양한 정보를 가져옵니다.
 이 모듈은 `app` 모듈의 `ready` 이벤트가 발생하기 전까지 사용할 수 없습니다.
 
-`screen`은 [EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)를 상속 받았습니다.
+`screen`은 [EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)를
+상속 받았습니다.
 
-**참고:** 랜더러 / DevTools에선 이미 DOM 속성이 `window.screen`을 가지고 있으므로 `screen = require('screen')` 형식으로 모듈을 사용할 수 없습니다.
-밑의 예제와 같이 `atomScreen` 같은 이름으로 모듈 이름을 대체하여 사용해야 합니다.
+**참고:** 랜더러 / DevTools에선 이미 DOM 속성이 `window.screen`을 가지고 있으므로
+`screen = require('screen')` 형식으로 모듈을 사용할 수 없습니다. 아래의 예제와 같이
+`electronScreen` 같은 이름으로 모듈 이름을 대체하여 사용해야 합니다.
 
 다음 예제는 화면 전체를 채우는 윈도우 창을 생성합니다:
 
 ```javascript
-var app = require('app');
-var BrowserWindow = require('browser-window');
+const electron = require('electron');
+const app = electron.app;
+const BrowserWindow = electron.BrowserWindow;
 
 var mainWindow;
 
 app.on('ready', function() {
-  var atomScreen = require('screen');
-  var size = atomScreen.getPrimaryDisplay().workAreaSize;
+  var electronScreen = electron.screen;
+  var size = electronScreen.getPrimaryDisplay().workAreaSize;
   mainWindow = new BrowserWindow({ width: size.width, height: size.height });
 });
 ```
@@ -32,11 +35,11 @@ var BrowserWindow = require('browser-window');
 var mainWindow;
 
 app.on('ready', function() {
-  var atomScreen = require('screen');
-  var displays = atomScreen.getAllDisplays();
+  var electronScreen = require('screen');
+  var displays = electronScreen.getAllDisplays();
   var externalDisplay = null;
   for (var i in displays) {
-    if (displays[i].bounds.x > 0 || displays[i].bounds.y > 0) {
+    if (displays[i].bounds.x != 0 || displays[i].bounds.y != 0) {
       externalDisplay = displays[i];
       break;
     }
@@ -45,11 +48,29 @@ app.on('ready', function() {
   if (externalDisplay) {
     mainWindow = new BrowserWindow({
       x: externalDisplay.bounds.x + 50,
-      y: externalDisplay.bounds.y + 50,
+      y: externalDisplay.bounds.y + 50
     });
   }
 });
 ```
+
+## `Display` 객체
+
+`Display` 객체는 시스템에 연결된 물리적인 디스플레이를 표현합니다. 헤드레스(headless)
+시스템에선 가짜 `Display` 객체가 보여지거나 리모트(remote), 가상 디스플레이에
+해당하게 됩니다.
+
+* `display` object
+  * `id` Integer - 디스플레이에 관련된 유일 식별자.
+  * `rotation` Integer - 값은 0, 1, 2, 3이 될 수 있고, 각 값은 시계 방향을 기준으로
+    0, 90, 180, 270도의 화면 회전 상태로 표현됩니다.
+  * `scaleFactor` Number - 기기의 픽셀 스케일 크기.
+  * `touchSupport` String - 터치 스크린의 여부, `available`, `unavailable`,
+    `unknown` 값으로 반환됩니다.
+  * `bounds` Object
+  * `size` Object
+  * `workArea` Object
+  * `workAreaSize` Object
 
 ## Events
 

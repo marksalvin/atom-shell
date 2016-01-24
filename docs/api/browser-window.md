@@ -4,14 +4,18 @@ The `BrowserWindow` class gives you the ability to create a browser window. For
 example:
 
 ```javascript
-var BrowserWindow = require('browser-window');
+// In the main process.
+const BrowserWindow = require('electron').BrowserWindow;
+
+// Or in the renderer process.
+const BrowserWindow = require('electron').remote.BrowserWindow;
 
 var win = new BrowserWindow({ width: 800, height: 600, show: false });
 win.on('closed', function() {
   win = null;
 });
 
-win.loadUrl('https://github.com');
+win.loadURL('https://github.com');
 win.show();
 ```
 
@@ -24,110 +28,166 @@ You can also create a window without chrome by using
 [EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter).
 
 It creates a new `BrowserWindow` with native properties as set by the `options`.
-Properties `width` and `height` are required.
 
-### `new BrowserWindow(options)`
+### `new BrowserWindow([options])`
 
-`options` Object, properties:
+* `options` Object
+  * `width` Integer - Window's width in pixels. Default is `800`.
+  * `height` Integer - Window's height in pixels. Default is `600`.
+  * `x` Integer - Window's left offset from screen. Default is to center the
+    window.
+  * `y` Integer - Window's top offset from screen. Default is to center the
+    window.
+  * `useContentSize` Boolean - The `width` and `height` would be used as web
+    page's size, which means the actual window's size will include window
+    frame's size and be slightly larger. Default is `false`.
+  * `center` Boolean - Show window in the center of the screen.
+  * `minWidth` Integer - Window's minimum width. Default is `0`.
+  * `minHeight` Integer - Window's minimum height. Default is `0`.
+  * `maxWidth` Integer - Window's maximum width. Default is no limit.
+  * `maxHeight` Integer - Window's maximum height. Default is no limit.
+  * `resizable` Boolean - Whether window is resizable. Default is `true`.
+  * `movable` Boolean - Whether window is movable. This is not implemented
+    on Linux. Default is `true`.
+  * `minimizable` Boolean - Whether window is minimizable. This is not
+    implemented on Linux. Default is `true`.
+  * `maximizable` Boolean - Whether window is maximizable. This is not
+    implemented on Linux. Default is `true`.
+  * `closable` Boolean - Whether window is closable. This is not implemented
+    on Linux. Default is `true`.
+  * `alwaysOnTop` Boolean - Whether the window should always stay on top of
+    other windows. Default is `false`.
+  * `fullscreen` Boolean - Whether the window should show in fullscreen. When
+    explicity set to `false` the fullscreen button will be hidden or disabled
+    on OS X, or the maximize button will be disabled on Windows. Default is
+    `false`.
+  * `fullscreenable` Boolean - Whether the maximize/zoom button on OS X should
+    toggle full screen mode or maximize window. Default is `true`.
+  * `skipTaskbar` Boolean - Whether to show the window in taskbar. Default is
+    `false`.
+  * `kiosk` Boolean - The kiosk mode. Default is `false`.
+  * `title` String - Default window title. Default is `"Electron"`.
+  * `icon` [NativeImage](native-image.md) - The window icon, when omitted on
+    Windows the executable's icon would be used as window icon.
+  * `show` Boolean - Whether window should be shown when created. Default is
+    `true`.
+  * `frame` Boolean - Specify `false` to create a
+    [Frameless Window](frameless-window.md). Default is `true`.
+  * `acceptFirstMouse` Boolean - Whether the web view accepts a single
+    mouse-down event that simultaneously activates the window. Default is
+    `false`.
+  * `disableAutoHideCursor` Boolean - Whether to hide cursor when typing.
+    Default is `false`.
+  * `autoHideMenuBar` Boolean - Auto hide the menu bar unless the `Alt`
+    key is pressed. Default is `false`.
+  * `enableLargerThanScreen` Boolean - Enable the window to be resized larger
+    than screen. Default is `false`.
+  * `backgroundColor` String - Window's background color as Hexadecimal value,
+    like `#66CD00` or `#FFF` or `#80FFFFFF` (alpha is supported). Default is
+    `#000` (black) for Linux and Windows, `#FFF` for Mac (or clear if
+    transparent).
+  * `hasShadow` Boolean - Whether window should have a shadow. This is only
+    implemented on OS X. Default is `true`.
+  * `darkTheme` Boolean - Forces using dark theme for the window, only works on
+    some GTK+3 desktop environments. Default is `false`.
+  * `transparent` Boolean - Makes the window [transparent](frameless-window.md).
+    Default is `false`.
+  * `type` String - The type of window, default is normal window. See more about
+    this below.
+  * `titleBarStyle` String - The style of window title bar. See more about this
+    below.
+  * `webPreferences` Object - Settings of web page's features. See more about
+    this below.
 
-* `width` Integer (**required**) - Window's width.
-* `height` Integer (**required**) - Window's height.
-* `x` Integer - Window's left offset from screen.
-* `y` Integer - Window's top offset from screen.
-* `use-content-size` Boolean - The `width` and `height` would be used as web
-   page's size, which means the actual window's size will include window
-   frame's size and be slightly larger.
-* `center` Boolean - Show window in the center of the screen.
-* `min-width` Integer - Window's minimum width.
-* `min-height` Integer - Window's minimum height.
-* `max-width` Integer - Window's maximum width.
-* `max-height` Integer - Window's maximum height.
-* `resizable` Boolean - Whether window is resizable.
-* `always-on-top` Boolean - Whether the window should always stay on top of
-   other windows.
-* `fullscreen` Boolean - Whether the window should show in fullscreen. When
-  set to `false` the fullscreen button will be hidden or disabled on OS X.
-* `skip-taskbar` Boolean - Whether to show the window in taskbar.
-* `kiosk` Boolean - The kiosk mode.
-* `title` String - Default window title.
-* `icon` [NativeImage](native-image.md) - The window icon, when omitted on
-  Windows the executable's icon would be used as window icon.
-* `show` Boolean - Whether window should be shown when created.
-* `frame` Boolean - Specify `false` to create a
-[Frameless Window](frameless-window.md).
-* `accept-first-mouse` Boolean - Whether the web view accepts a single
-  mouse-down event that simultaneously activates the window.
-* `disable-auto-hide-cursor` Boolean - Whether to hide cursor when typing.
-* `auto-hide-menu-bar` Boolean - Auto hide the menu bar unless the `Alt`
-  key is pressed.
-* `enable-larger-than-screen` Boolean - Enable the window to be resized larger
-  than screen.
-* `dark-theme` Boolean - Forces using dark theme for the window, only works on
-  some GTK+3 desktop environments.
-* `transparent` Boolean - Makes the window [transparent](frameless-window.md).
-* `type` String - Specifies the type of the window, possible types are
-  `desktop`, `dock`, `toolbar`, `splash`, `notification`. This only works on
-  Linux.
-* `standard-window` Boolean - Uses the OS X's standard window instead of the
-  textured window. Defaults to `true`.
-* `title-bar-style` String, OS X - specifies the style of window title bar.
-  This option is supported on OS X 10.10 Yosemite and newer. There are three
-  possible values:
-  * `default` or not specified results in the standard gray opaque Mac title
+The possible values and behaviors of `type` option are platform dependent,
+supported values are:
+
+* On Linux, possible types are `desktop`, `dock`, `toolbar`, `splash`,
+  `notification`.
+* On OS X, possible types are `desktop`, `textured`.
+  * The `textured` type adds metal gradient appearance
+    (`NSTexturedBackgroundWindowMask`).
+  * The `desktop` type places the window at the desktop background window level
+    (`kCGDesktopWindowLevel - 1`). Note that desktop window will not receive
+    focus, keyboard or mouse events, but you can use `globalShortcut` to receive
+    input sparingly.
+
+The `titleBarStyle` option is only supported on OS X 10.10 Yosemite and newer.
+Possible values are:
+
+* `default` or not specified, results in the standard gray opaque Mac title
   bar.
-  * `hidden` results in a hidden title bar and a full size content window, yet
+* `hidden` results in a hidden title bar and a full size content window, yet
   the title bar still has the standard window controls ("traffic lights") in
   the top left.
-  * `hidden-inset` results in a hidden title bar with an alternative look
+* `hidden-inset` results in a hidden title bar with an alternative look
   where the traffic light buttons are slightly more inset from the window edge.
-* `web-preferences` Object - Settings of web page's features, properties:
-  * `node-integration` Boolean - Whether node integration is enabled. Default
-    is `true`.
-  * `preload` String - Specifies a script that will be loaded before other
-    scripts run in the page. This script will always have access to node APIs
-    no matter whether node integration is turned on for the page, and the path
-    of `preload` script has to be absolute path.
-  * `partition` String - Sets the session used by the page. If `partition`
-    starts with `persist:`, the page will use a persistent session available to
-    all pages in the app with the same `partition`. if there is no `persist:`
-    prefix, the page will use an in-memory session. By assigning the same
-    `partition`, multiple pages can share the same session. If the `partition`
-    is unset then default session of the app will be used.
-  * `zoom-factor` Number - The default zoom factor of the page, `3.0` represents
-    `300%`.
-  * `javascript` Boolean
-  * `web-security` Boolean - When setting `false`, it will disable the
-    same-origin policy (Usually using testing websites by people), and set
-    `allow_displaying_insecure_content` and `allow_running_insecure_content` to
-    `true` if these two options are not set by user.
-  * `allow-displaying-insecure-content` Boolean - Allow an https page to display
-    content like images from http URLs.
-  * `allow-running-insecure-content` Boolean - Allow a https page to run
-    JavaScript, CSS or plugins from http URLs.
-  * `images` Boolean
-  * `java` Boolean
-  * `text-areas-are-resizable` Boolean
-  * `webgl` Boolean
-  * `webaudio` Boolean
-  * `plugins` Boolean - Whether plugins should be enabled.
-  * `experimental-features` Boolean
-  * `experimental-canvas-features` Boolean
-  * `subpixel-font-scaling` Boolean
-  * `overlay-scrollbars` Boolean
-  * `overlay-fullscreen-video` Boolean
-  * `shared-worker` Boolean
-  * `direct-write` Boolean - Whether the DirectWrite font rendering system on
-     Windows is enabled.
-  * `page-visibility` Boolean - Page would be forced to be always in visible
-     or hidden state once set, instead of reflecting current window's
-     visibility. Users can set it to `true` to prevent throttling of DOM
-     timers.
+
+The `webPreferences` option is an object that can have following properties:
+
+* `nodeIntegration` Boolean - Whether node integration is enabled. Default
+  is `true`.
+* `preload` String - Specifies a script that will be loaded before other
+  scripts run in the page. This script will always have access to node APIs
+  no matter whether node integration is turned on or off. The value should
+  be the absolute file path to the script.
+  When node integration is turned off, the preload script can reintroduce
+  Node global symbols back to the global scope. See example
+  [here](process.md#event-loaded).
+* `session` [Session](session.md#class-session) - Sets the session used by the
+  page. Instead of passing the Session object directly, you can also choose to
+  use the `partition` option instead, which accepts a partition string. When
+  both `session` and `partition` are provided, `session` would be preferred.
+  Default is the default session.
+* `partition` String - Sets the session used by the page according to the
+  session's partition string. If `partition` starts with `persist:`, the page
+  will use a persistent session available to all pages in the app with the
+  same `partition`. if there is no `persist:` prefix, the page will use an
+  in-memory session. By assigning the same `partition`, multiple pages can share
+  the same session. Default is the default session.
+* `zoomFactor` Number - The default zoom factor of the page, `3.0` represents
+  `300%`. Default is `1.0`.
+* `javascript` Boolean - Enables JavaScript support. Default is `true`.
+* `webSecurity` Boolean - When setting `false`, it will disable the
+  same-origin policy (Usually using testing websites by people), and set
+  `allowDisplayingInsecureContent` and `allowRunningInsecureContent` to
+  `true` if these two options are not set by user. Default is `true`.
+* `allowDisplayingInsecureContent` Boolean - Allow an https page to display
+  content like images from http URLs. Default is `false`.
+* `allowRunningInsecureContent` Boolean - Allow a https page to run
+  JavaScript, CSS or plugins from http URLs. Default is `false`.
+* `images` Boolean - Enables image support. Default is `true`.
+* `textAreasAreResizable` Boolean - Make TextArea elements resizable. Default
+  is `true`.
+* `webgl` Boolean - Enables WebGL support. Default is `true`.
+* `webaudio` Boolean - Enables WebAudio support. Default is `true`.
+* `plugins` Boolean - Whether plugins should be enabled. Default is `false`.
+* `experimentalFeatures` Boolean - Enables Chromium's experimental features.
+  Default is `false`.
+* `experimentalCanvasFeatures` Boolean - Enables Chromium's experimental
+  canvas features. Default is `false`.
+* `directWrite` Boolean - Enables DirectWrite font rendering system on
+  Windows. Default is `true`.
+* `blinkFeatures` String - A list of feature strings separated by `,`, like
+  `CSSVariables,KeyboardEventKey`. The full list of supported feature strings
+  can be found in the [setFeatureEnabledFromString][blink-feature-string]
+  function.
+* `defaultFontFamily` Object - Sets the default font for the font-family.
+  * `standard` String - Defaults to `Times New Roman`.
+  * `serif` String - Defaults to `Times New Roman`.
+  * `sansSerif` String - Defaults to `Arial`.
+  * `monospace` String - Defaults to `Courier New`.
+* `defaultFontSize` Integer - Defaults to `16`.
+* `defaultMonospaceFontSize` Integer - Defaults to `13`.
+* `minimumFontSize` Integer - Defaults to `0`.
+* `defaultEncoding` String - Defaults to `ISO-8859-1`.
 
 ## Events
 
 The `BrowserWindow` object emits the following events:
 
-**Note:** Some events are only available on specific operating systems and are labeled as such.
+**Note:** Some events are only available on specific operating systems and are
+labeled as such.
 
 ### Event: 'page-title-updated'
 
@@ -232,19 +292,7 @@ Emitted when the window enters full screen state triggered by html api.
 
 Emitted when the window leaves full screen state triggered by html api.
 
-### Event: 'devtools-opened'
-
-Emitted when DevTools is opened.
-
-### Event: 'devtools-closed'
-
-Emitted when DevTools is closed.
-
-### Event: 'devtools-focused'
-
-Emitted when DevTools is focused / opened.
-
-### Event: 'app-command':
+### Event: 'app-command' _Windows_
 
 Emitted when an [App Command](https://msdn.microsoft.com/en-us/library/windows/desktop/ms646275(v=vs.85).aspx)
 is invoked. These are typically related to keyboard media keys or browser
@@ -269,7 +317,7 @@ Returns an array of all opened browser windows.
 
 ### `BrowserWindow.getFocusedWindow()`
 
-Returns the window that is focused in this application.
+Returns the window that is focused in this application, otherwise returns `null`.
 
 ### `BrowserWindow.fromWebContents(webContents)`
 
@@ -303,11 +351,8 @@ Remove the DevTools extension whose name is `name`.
 Objects created with `new BrowserWindow` have the following properties:
 
 ```javascript
-var BrowserWindow = require('browser-window');
-
 // In this example `win` is our instance
 var win = new BrowserWindow({ width: 800, height: 600 });
-
 ```
 
 ### `win.webContents`
@@ -318,16 +363,6 @@ operations will be done via it.
 See the [`webContents` documentation](web-contents.md) for its methods and
 events.
 
-**Note:** Users should never store this object because it may become `null`
-when the renderer process (web page) has crashed.
-
-### `win.devToolsWebContents`
-
-Get the `WebContents` of DevTools for this window.
-
-**Note:** Users should never store this object because it may become `null`
-when the DevTools has been closed.
-
 ### `win.id`
 
 The unique ID of this window.
@@ -336,24 +371,14 @@ The unique ID of this window.
 
 Objects created with `new BrowserWindow` have the following instance methods:
 
-**Note:** Some methods are only available on specific operating systems and are labeled as such.
-
-```javascript
-var BrowserWindow = require('browser-window');
-
-// In this example `win` is our instance
-var win = new BrowserWindow({ width: 800, height: 600 });
-
-```
+**Note:** Some methods are only available on specific operating systems and are
+labeled as such.
 
 ### `win.destroy()`
 
 Force closing the window, the `unload` and `beforeunload` event won't be emitted
 for the web page, and `close` event will also not be emitted
 for this window, but it guarantees the `closed` event will be emitted.
-
-You should only use this method when the renderer process (web page) has
-crashed.
 
 ### `win.close()`
 
@@ -443,14 +468,16 @@ the player itself we would call this function with arguments of 16/9 and
 are within the content view--only that they exist. Just sum any extra width and
 height areas you have within the overall content view.
 
-### `win.setBounds(options)`
+### `win.setBounds(options[, animate])`
 
-`options` Object, properties:
+* `options` Object, properties:
 
-* `x` Integer
-* `y` Integer
-* `width` Integer
-* `height` Integer
+  * `x` Integer
+  * `y` Integer
+  * `width` Integer
+  * `height` Integer
+
+* `animate` Boolean (optional) _OS X_
 
 Resizes and moves the window to `width`, `height`, `x`, `y`.
 
@@ -458,10 +485,11 @@ Resizes and moves the window to `width`, `height`, `x`, `y`.
 
 Returns an object that contains window's width, height, x and y values.
 
-### `win.setSize(width, height)`
+### `win.setSize(width, height[, animate])`
 
 * `width` Integer
 * `height` Integer
+* `animate` Boolean (optional) _OS X_
 
 Resizes the window to `width` and `height`.
 
@@ -469,10 +497,11 @@ Resizes the window to `width` and `height`.
 
 Returns an array that contains window's width and height.
 
-### `win.setContentSize(width, height)`
+### `win.setContentSize(width, height[, animate])`
 
 * `width` Integer
 * `height` Integer
+* `animate` Boolean (optional) _OS X_
 
 Resizes the window's client area (e.g. the web page) to `width` and `height`.
 
@@ -512,6 +541,64 @@ Sets whether the window can be manually resized by user.
 
 Returns whether the window can be manually resized by user.
 
+### `win.setMovable(movable)` _OS X_ _Windows_
+
+* `movable` Boolean
+
+Sets whether the window can be moved by user. On Linux does nothing.
+
+### `win.isMovable()` _OS X_ _Windows_
+
+Returns whether the window can be moved by user. On Linux always returns
+`true`.
+
+### `win.setMinimizable(minimizable)` _OS X_ _Windows_
+
+* `minimizable` Boolean
+
+Sets whether the window can be manually minimized by user. On Linux does
+nothing.
+
+### `win.isMinimizable()` _OS X_ _Windows_
+
+Returns whether the window can be manually minimized by user. On Linux always
+returns `true`.
+
+### `win.setMaximizable(maximizable)` _OS X_ _Windows_
+
+* `maximizable` Boolean
+
+Sets whether the window can be manually maximized by user. On Linux does
+nothing.
+
+### `win.isMaximizable()` _OS X_ _Windows_
+
+Returns whether the window can be manually maximized by user. On Linux always
+returns `true`.
+
+### `win.setFullScreenable(fullscreenable)` _OS X_
+
+* `fullscreenable` Boolean
+
+Sets whether the maximize/zoom window button toggles fullscreen mode or
+maximizes the window. On Windows and Linux does nothing.
+
+### `win.isFullScreenable()` _OS X_
+
+Returns whether the maximize/zoom window button toggles fullscreen mode or
+maximizes the window. On Windows and Linux always returns `true`.
+
+### `win.setClosable(closable)` _OS X_ _Windows_
+
+* `closable` Boolean
+
+Sets whether the window can be manually closed by user. On Linux does nothing.
+
+### `win.isClosable()` _OS X_ _Windows_
+
+Returns whether the window can be manually closed by user. On Linux always
+returns `true`.
+
 ### `win.setAlwaysOnTop(flag)`
 
 * `flag` Boolean
@@ -528,10 +615,11 @@ Returns whether the window is always on top of other windows.
 
 Moves window to the center of the screen.
 
-### `win.setPosition(x, y)`
+### `win.setPosition(x, y[, animate])`
 
 * `x` Integer
 * `y` Integer
+* `animate` Boolean (optional) _OS X_
 
 Moves window to `x` and `y`.
 
@@ -574,6 +662,37 @@ Enters or leaves the kiosk mode.
 
 Returns whether the window is in kiosk mode.
 
+### `win.getNativeWindowHandle()`
+
+Returns the platform-specific handle of the window as `Buffer`.
+
+The native type of the handle is `HWND` on Windows, `NSView*` on OS X, and
+`Window` (`unsigned long`) on Linux.
+
+### `win.hookWindowMessage(message, callback)` _Windows_
+
+* `message` Integer
+* `callback` Function
+
+Hooks a windows message. The `callback` is called when
+the message is received in the WndProc.
+
+### `win.isWindowMessageHooked(message)` _Windows_
+
+* `message` Integer
+
+Returns `true` or `false` depending on whether the message is hooked.
+
+### `win.unhookWindowMessage(message)` _Windows_
+
+* `message` Integer
+
+Unhook the window message.
+
+### `win.unhookAllWindowMessages()` _Windows_
+
+Unhooks all of the window messages.
+
 ### `win.setRepresentedFilename(filename)` _OS X_
 
 * `filename` String
@@ -592,44 +711,9 @@ Returns the pathname of the file the window represents.
 Specifies whether the window’s document has been edited, and the icon in title
 bar will become grey when set to `true`.
 
-### `win.IsDocumentEdited()` _OS X_
+### `win.isDocumentEdited()` _OS X_
 
 Whether the window's document has been edited.
-
-### `win.openDevTools([options])`
-
-* `options` Object (optional). Properties:
-  * `detach` Boolean - opens DevTools in a new window
-
-Opens the developer tools.
-
-### `win.closeDevTools()`
-
-Closes the developer tools.
-
-### `win.isDevToolsOpened()`
-
-Returns whether the developer tools are opened.
-
-### `win.toggleDevTools()`
-
-Toggles the developer tools.
-
-### `win.isDevToolsFocused()`
-
-Returns whether the developer tools is focused.
-
-### `win.inspectElement(x, y)`
-
-* `x` Integer
-* `y` Integer
-
-Starts inspecting element at position (`x`, `y`).
-
-### `win.inspectServiceWorker()`
-
-Opens the developer tools for the service worker context present in the web
-contents.
 
 ### `win.focusOnWebView()`
 
@@ -657,15 +741,15 @@ Same as `webContents.print([options])`
 
 Same as `webContents.printToPDF(options, callback)`
 
-### `win.loadUrl(url[, options])`
+### `win.loadURL(url[, options])`
 
-Same as `webContents.loadUrl(url[, options])`.
+Same as `webContents.loadURL(url[, options])`.
 
 ### `win.reload()`
 
 Same as `webContents.reload`.
 
-### `win.setMenu(menu)` _OS X_
+### `win.setMenu(menu)` _Linux_ _Windows_
 
 * `menu` Menu
 
@@ -696,6 +780,17 @@ screen readers
 Sets a 16px overlay onto the current taskbar icon, usually used to convey some
 sort of application status or to passively notify the user.
 
+### `win.setHasShadow(hasShadow)` _OS X_
+
+* `hasShadow` (Boolean)
+
+Sets whether the window should have a shadow. On Windows and Linux does
+nothing.
+
+### `win.hasShadow()` _OS X_
+
+Returns whether the window has a shadow. On Windows and Linux always returns
+`true`.
 
 ### `win.setThumbarButtons(buttons)` _Windows 7+_
 
@@ -772,3 +867,11 @@ Sets whether the window should be visible on all workspaces.
 Returns whether the window is visible on all workspaces.
 
 **Note:** This API always returns false on Windows.
+
+### `win.setIgnoreMouseEvents(ignore)` _OS X_
+
+* `ignore` Boolean
+
+Ignore all moused events that happened in the window.
+
+[blink-feature-string]: https://code.google.com/p/chromium/codesearch#chromium/src/out/Debug/gen/blink/platform/RuntimeEnabledFeatures.cpp&sq=package:chromium&type=cs&l=527

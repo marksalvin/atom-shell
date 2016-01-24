@@ -4,15 +4,19 @@
 
 #include "atom/renderer/api/atom_api_web_frame.h"
 
+#include "atom/common/api/event_emitter_caller.h"
 #include "atom/common/native_mate_converters/callback.h"
 #include "atom/common/native_mate_converters/gfx_converter.h"
 #include "atom/common/native_mate_converters/string16_converter.h"
 #include "atom/renderer/api/atom_api_spell_check_client.h"
 #include "content/public/renderer/render_frame.h"
+#include "content/public/renderer/render_view.h"
 #include "native_mate/dictionary.h"
 #include "native_mate/object_template_builder.h"
 #include "third_party/WebKit/public/web/WebDocument.h"
 #include "third_party/WebKit/public/web/WebLocalFrame.h"
+#include "third_party/WebKit/public/web/WebScopedUserGesture.h"
+#include "third_party/WebKit/public/web/WebScriptSource.h"
 #include "third_party/WebKit/public/web/WebSecurityPolicy.h"
 #include "third_party/WebKit/public/web/WebView.h"
 
@@ -34,7 +38,9 @@ void WebFrame::SetName(const std::string& name) {
 }
 
 double WebFrame::SetZoomLevel(double level) {
-  return web_frame_->view()->setZoomLevel(level);
+  double ret = web_frame_->view()->setZoomLevel(level);
+  mate::EmitEvent(isolate(), GetWrapper(isolate()), "zoom-level-changed", ret);
+  return ret;
 }
 
 double WebFrame::GetZoomLevel() const {
@@ -92,7 +98,7 @@ void WebFrame::RegisterURLSchemeAsSecure(const std::string& scheme) {
       blink::WebString::fromUTF8(scheme));
 }
 
-void WebFrame::RegisterURLSchemeAsBypassingCsp(const std::string& scheme) {
+void WebFrame::RegisterURLSchemeAsBypassingCSP(const std::string& scheme) {
   // Register scheme to bypass pages's Content Security Policy.
   blink::WebSecurityPolicy::registerURLSchemeAsBypassingContentSecurityPolicy(
       blink::WebString::fromUTF8(scheme));
@@ -106,6 +112,21 @@ void WebFrame::RegisterURLSchemeAsPrivileged(const std::string& scheme) {
       privileged_scheme);
   blink::WebSecurityPolicy::registerURLSchemeAsAllowingServiceWorkers(
       privileged_scheme);
+  blink::WebSecurityPolicy::registerURLSchemeAsSupportingFetchAPI(
+      privileged_scheme);
+}
+
+void WebFrame::InsertText(const std::string& text) {
+  web_frame_->insertText(blink::WebString::fromUTF8(text));
+}
+
+void WebFrame::ExecuteJavaScript(const base::string16& code,
+                                 mate::Arguments* args) {
+  bool has_user_gesture = false;
+  args->GetNext(&has_user_gesture);
+  scoped_ptr<blink::WebScopedUserGesture> gesture(
+      has_user_gesture ? new blink::WebScopedUserGesture : nullptr);
+  web_frame_->executeScriptAndReturnValue(blink::WebScriptSource(code));
 }
 
 mate::ObjectTemplateBuilder WebFrame::GetObjectTemplateBuilder(
@@ -123,12 +144,14 @@ mate::ObjectTemplateBuilder WebFrame::GetObjectTemplateBuilder(
                  &WebFrame::RegisterElementResizeCallback)
       .SetMethod("attachGuest", &WebFrame::AttachGuest)
       .SetMethod("setSpellCheckProvider", &WebFrame::SetSpellCheckProvider)
-      .SetMethod("registerUrlSchemeAsSecure",
+      .SetMethod("registerURLSchemeAsSecure",
                  &WebFrame::RegisterURLSchemeAsSecure)
-      .SetMethod("registerUrlSchemeAsBypassingCsp",
-                 &WebFrame::RegisterURLSchemeAsBypassingCsp)
-      .SetMethod("registerUrlSchemeAsPrivileged",
-                 &WebFrame::RegisterURLSchemeAsPrivileged);
+      .SetMethod("registerURLSchemeAsBypassingCSP",
+                 &WebFrame::RegisterURLSchemeAsBypassingCSP)
+      .SetMethod("registerURLSchemeAsPrivileged",
+                 &WebFrame::RegisterURLSchemeAsPrivileged)
+      .SetMethod("insertText", &WebFrame::InsertText)
+      .SetMethod("executeJavaScript", &WebFrame::ExecuteJavaScript);
 }
 
 // static

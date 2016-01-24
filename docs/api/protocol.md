@@ -7,11 +7,12 @@ An example of implementing a protocol that has the same effect as the
 `file://` protocol:
 
 ```javascript
-var app = require('app');
-var path = require('path');
+const electron = require('electron');
+const app = electron.app;
+const path = require('path');
 
 app.on('ready', function() {
-    var protocol = require('protocol');
+    var protocol = electron.protocol;
     protocol.registerFileProtocol('atom', function(request, callback) {
       var url = request.url.substr(7);
       callback({path: path.normalize(__dirname + '/' + url)});
@@ -36,6 +37,10 @@ The `protocol` module has the following methods:
 A standard `scheme` adheres to what RFC 3986 calls
 [generic URI syntax](https://tools.ietf.org/html/rfc3986#section-3). This
 includes `file:` and `filesystem:`.
+
+### `protocol.registerServiceWorkerSchemes(schemes)`
+
+* `schemes` Array - Custom schemes to be registered to handle service workers.
 
 ### `protocol.registerFileProtocol(scheme, handler[, completion])`
 
@@ -102,10 +107,15 @@ Registers a protocol of `scheme` that will send a `String` as a response. The
 
 Registers a protocol of `scheme` that will send an HTTP request as a response.
 The `callback` should be called with an object that has the `url`, `method`,
-`referer`, and `session` properties.
+`referrer`, `uploadData` and `session` properties.
 
 By default the HTTP request will reuse the current session. If you want the
 request to have a different session you should set `session` to `null`.
+
+POST request should provide an `uploadData` object.
+* `uploadData` object
+  * `contentType` String - MIME type of the content.
+  *  `data` String - Content to be sent.
 
 ### `protocol.unregisterProtocol(scheme[, completion])`
 
@@ -140,7 +150,7 @@ which sends a file as a response.
 Intercepts `scheme` protocol and uses `handler` as the protocol's new handler
 which sends a `String` as a response.
 
-## `protocol.interceptBufferProtocol(scheme, handler[, completion])`
+### `protocol.interceptBufferProtocol(scheme, handler[, completion])`
 
 * `scheme` String
 * `handler` Function
@@ -149,7 +159,7 @@ which sends a `String` as a response.
 Intercepts `scheme` protocol and uses `handler` as the protocol's new handler
 which sends a `Buffer` as a response.
 
-## `protocol.interceptHttpProtocol(scheme, handler[, completion])`
+### `protocol.interceptHttpProtocol(scheme, handler[, completion])`
 
 * `scheme` String
 * `handler` Function
@@ -158,7 +168,7 @@ which sends a `Buffer` as a response.
 Intercepts `scheme` protocol and uses `handler` as the protocol's new handler
 which sends a new HTTP request as a response.
 
-## `protocol.uninterceptProtocol(scheme[, completion])`
+### `protocol.uninterceptProtocol(scheme[, completion])`
 
 * `scheme` String
 * `completion` Function

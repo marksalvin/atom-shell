@@ -7,8 +7,8 @@ import sys
 
 
 BASE_URL = os.getenv('LIBCHROMIUMCONTENT_MIRROR') or \
-    'http://github-janky-artifacts.s3.amazonaws.com/libchromiumcontent'
-LIBCHROMIUMCONTENT_COMMIT = '8482fe555913dea3bde8a74f754524e2cfb02bc5'
+    'https://s3.amazonaws.com/github-janky-artifacts/libchromiumcontent'
+LIBCHROMIUMCONTENT_COMMIT = 'ad63d8ba890bcaad2f1b7e6de148b7992f4d3af7'
 
 PLATFORM = {
   'cygwin': 'win32',
@@ -18,6 +18,13 @@ PLATFORM = {
 }[sys.platform]
 
 verbose_mode = False
+
+
+def get_platform_key():
+  if os.environ.has_key('MAS_BUILD'):
+    return 'mas'
+  else:
+    return PLATFORM
 
 
 def get_target_arch():
